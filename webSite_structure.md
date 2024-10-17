@@ -25,6 +25,9 @@ Dans un article:
 - le titre est dans un <h2 class="h3 product-title"> c'est le texte du <a>
 - l'image est dans un <a class="thumbnail product-thumbnail"> lui meme dans un <div class="thumbnail-block">
 - Le prix est dans un <span class="price "> lui meme dans un <div class="product-price-and-shipping">
+
+meme si le produit est en promotion son class demare par price
+
 Pour des prix qui ont un changement alors prix est dans un <span class="price has-discount"> et l'ancien prix est dans <span class="regular-price"> et <span class="price "> n'existe plus
 ripture ou pas est dans un <span class="rupture"> lui meme dans un <div class="thumbnail-container reviews-loaded">.attention ripture n'exsiste que pour les articles en rupture de sock
 - claque article a un identifiant dans "data-id-product" argument de <article>
