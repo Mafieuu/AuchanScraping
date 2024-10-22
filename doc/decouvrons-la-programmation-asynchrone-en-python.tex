@@ -1,0 +1,1469 @@
+\documentclass[small]{zmdocument}
+
+\usepackage{blindtext}
+\title{Découvrons la programmation asynchrone en Python}
+\author{nohar}
+\licence[/opt/zds/app/dist/licenses/by.svg]{CC BY}{https://creativecommons.org/licenses/by/4.0/legalcode}
+
+\smileysPath{/opt/zds/app/dist/smileys/svg}
+\makeglossaries
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\begin{LevelOneIntroduction}
+Depuis que Python 3.5 est sorti, un nom se trouve sur les lèvres de tous les pythonistes : \CodeInline{asyncio}.
+
+Méconnue et encore un peu mal comprise, cette \textit{bibliothèque standard dans la bibliothèque standard} est une véritable petite révolution dans le monde de Python, en introduisant dans le cœur du langage de nouveaux éléments syntaxiques, adaptés à un paradigme de programmation dont d’autres langages (\externalLink{Node.js}{https://nodejs.org/en/}, \externalLink{Go}{https://golang.org/}…) ou frameworks (\externalLink{twisted}{https://pypi.python.org/pypi/Twisted}, \externalLink{tornado}{https://pypi.python.org/pypi/tornado}, \externalLink{gevent}{https://pypi.python.org/pypi/gevent}…) avaient dessiné les contours avant elle : la \textit{programmation asynchrone.}
+
+\textbf{Mais enfin, à quoi ça sert ? Et comment ça marche ?}
+
+C’est le thème qui revient le plus quand je discute d'\CodeInline{asyncio} avec d’autres développeurs. On a beau sentir que cette bibliothèque a des enjeux tellement importants que le créateur de Python a travaillé dessus pendant plus d’une année entière (sous le nom de code \textit{Tulip}), il reste difficile de comprendre ce qui légitime autant d’efforts pour inclure la programmation asynchrone dans le cœur de Python : après tout, « \textit{c’est juste adapté au réseau et au web} », non ?
+
+Il y a un an, \externalLink{je vous parlais de coroutines}{https://zestedesavoir.com/articles/232/la-puissance-cachee-des-coroutines/} sur ce site, en vous expliquant que c’était la base d'\CodeInline{asyncio}. Aujourd’hui, mon but est à la fois de vous faire comprendre à quel besoin répond cette bibliothèque, et surtout \textbf{comment c’est fichu à l’intérieur}.
+
+\begin{Information}
+Vous vous apercevrez certainement qu’à la fin de cet article, nous n’aurons pas fait une seule ligne de programmation réseau.
+\end{Information}
+C’est voulu, parce que le but est justement de vous montrer \textbf{le mécanisme}, sans le réduire à l’une de ses applications possibles.
+\end{LevelOneIntroduction}
+
+
+\levelOneTitle{Ça veut dire quoi, asynchrone ?}
+
+En un mot comme en cent, un programme qui fonctionne de façon \textit{asychrone},
+c’est un programme qui évite au maximum de passer du temps à \textit{attendre sans
+rien faire}, et qui s’arrange pour \textit{s’occuper autant que possible pendant qu’il
+attend}. Cette façon d’optimiser le temps d’attente est tout à fait naturelle
+pour nous. Par exemple, on peut s’en rendre compte en observant le travail d’un
+serveur qui monte votre commande dans un fast-food.
+
+
+
+De façon synchrone :
+
+
+
+\begin{itemize}
+\item\relax Préparer le hamburger :
+
+\begin{itemize}
+\item\relax Demander le hamburger en cuisine.
+\item\relax Attendre le hamburger (1 minute).
+\item\relax Récupérer le hamburger et le poser sur le plateau.
+\end{itemize}
+\item\relax Préparer les frites :
+
+\begin{itemize}
+\item\relax Mettre des frites à chauffer.
+\item\relax Attendre que les frites soient cuites (2 minutes).
+\item\relax Récupérer des frites et les poser sur le plateau.
+\end{itemize}
+\item\relax Préparer la boisson :
+
+\begin{itemize}
+\item\relax Placer un gobelet dans la machine à soda.
+\item\relax Remplir le gobelet (30 secondes).
+\item\relax Récupérer le gobelet et le poser sur le plateau.
+\end{itemize}
+\end{itemize}
+
+
+En gros, si notre employé de fast-food était synchrone, il mettrait 3 minutes
+et 30 secondes pour monter votre commande. Et je vous garantis que s’il fonctionnait vraiment de cette façon, \textbf{vous ne remettriez plus jamais les pieds dans ce fast-food} ! \smiley{heureux.svg}
+
+
+
+Schématisons ce fonctionnement. Nous avons 4 acteurs, ou "services" :
+
+
+
+\begin{enumerate}
+\item\relax Le comptoir (où se trouve le serveur qui monte votre commande),
+\item\relax La cuisine,
+\item\relax La friteuse,
+\item\relax La fontaine à soda.
+\end{enumerate}
+
+
+Voici comment les choses se dérouleraient de façon synchrone :
+
+
+
+
+{\centering \image{/opt/zds/data/contents-public/decouvrons-la-programmation-asynchrone-en-python__building/extra_contents/images/XdaS5NDko0/ofEtEonFVH.png}[Le travail d’un serveur de fast food… s’il était synchrone]
+}
+
+
+Regardez la ligne du comptoir, chaque portion en pointillés signifie que le serveur reste bloqué à attendre que ça soit prêt. En informatique, on appelle cela des \textbf{entrées-sorties bloquantes}. Imaginez un peu un serveur de fast-food qui attend bêtement devant la cuisine que le hamburger arrive, avant de passer à la suite… Il aurait l’air un peu idiot, non ? Et surtout, vous seriez servi froid !
+
+
+
+Dans la réalité, un serveur fonctionne plutôt de façon \textbf{asynchrone} :
+
+
+
+\begin{itemize}
+\item\relax Demander le hamburger en cuisine.
+\item\relax Mettre les frites à chauffer.
+\item\relax Placer un gobelet dans la machine à soda et le mettre à remplir.
+\item\relax Après 30 secondes: Récupérer le gobelet et le poser sur le plateau.
+\item\relax Après 1 minute : Récupérer le hamburger et le poser sur le plateau.
+\item\relax Après 2 minutes : Récupérer les frites et les poser sur le plateau.
+\end{itemize}
+
+
+Ce qui donne le schéma suivant :
+
+
+
+
+{\centering \image{/opt/zds/data/contents-public/decouvrons-la-programmation-asynchrone-en-python__building/extra_contents/images/XdaS5NDko0/1TNHJZa-VX.png}[Le travail d’un serveur de fast food, de façon plus réaliste]
+}
+
+
+En travaillant de façon asynchrone, notre employé de fast-food monte maintenant votre commande en 2 minutes. Mais ça ne s’arrête pas là ! Regardez, bien, \textit{il reste des pointillés} sur la ligne du comptoir. À votre avis, que fait notre serveur pendant ce temps ?
+
+
+
+Eh bien, \textbf{il sert d’autres clients}, pardi !
+
+
+
+\begin{itemize}
+\item\relax \textbf{Une commande \CodeInline{A} est confiée à l’employé}
+\item\relax Demander le burger pour \CodeInline{A} en cuisine
+\item\relax Mettre les frites à chauffer.
+\item\relax Placer un gobelet dans la machine à soda pour \CodeInline{A}.
+\item\relax Après 30 secondes : Récupérer le gobelet de \CodeInline{A} et le poser sur son plateau
+\item\relax \textbf{Une nouvelle commande \CodeInline{B} est prise et confiée à l’employé}
+\item\relax Demander le burger pour \CodeInline{B} en cuisine
+\item\relax Placer un gobelet dans la machine à soda pour \CodeInline{B}.
+\item\relax Après 1 minute : Le burger de \CodeInline{A} est prêt, le poser sur son plateau.
+\item\relax La boisson de \CodeInline{B} est remplie, la poser sur son plateau.
+\item\relax Après 1 minute 40 : Le burger de \CodeInline{B} est prêt, le poser sur son plateau.
+\item\relax Après 2 minutes : Les frites sont prêtes, servir \CodeInline{A} et \CodeInline{B}
+\end{itemize}
+
+
+Toujours en 2 minutes, l’employé asynchrone vient cette fois de servir 2
+clients. Si vous vous mettez à la place du client \CodeInline{B} qui aurait dû attendre
+que l’employé finisse de monter la commande de \CodeInline{A} avant de s’occuper de la
+sienne dans un schéma synchrone, celui-ci a été servi en 1 minute 30 au lieu
+d’attendre 6 minutes 30. Voilà pourquoi on parle de \textbf{fast}-food !
+
+
+
+Si l’on devait résumer et légitimer la programmation asynchrone en une phrase,
+voici la conclusion que l’on devrait tirer de cet exemple :
+
+
+
+\begin{Information}
+La programmation asynchrone est une façon de concevoir des programmes qui s’exécutent de façon \textbf{concurrente}.
+\end{Information}
+
+
+Pensez-y la prochaine fois que vous irez manger dans un fast-food, et observez
+les serveurs. Leur boulot vous semblera d’un coup beaucoup plus compliqué qu’il
+n’y paraît. \smiley{clin.svg}
+
+
+\levelOneTitle{Concurrence et parallélisme}
+
+\levelTwoTitle{Deux notions à ne pas confondre !}
+
+
+Lorsque l’on parle de \textbf{concurrence}, beaucoup pensent à l’exécution \textbf{parallèle} de plusieurs tâches. Dissipons cet amalgame au plus vite, sans quoi vous risquez de vous perdre dans la suite.
+
+
+
+\begin{itemize}
+\item\relax Un programme qui s’exécute de façon \textbf{concurrente}, c’est un programme qui, à un instant T, est en train de réaliser \textbf{plusieurs tâches en même temps}, comme notre employé de fast-food qui est capable de monter plusieurs commandes à la fois.
+\item\relax Un programme qui s’exécute de façon \textbf{parallèle}, c’est \textbf{UNE} tâche qui a été découpée en plusieurs morceaux pour être réalisée par \textbf{PLUSIEURS} acteurs en même temps, la plupart du temps pour qu’elle se termine plus vite.
+\end{itemize}
+
+
+Si vous préférez une image plus visuelle :
+
+
+
+\begin{itemize}
+\item\relax Un serveur de fast-food n’a pas besoin de se dupliquer pour monter les commandes de deux clients à la fois, et surtout, même s’il en était capable, \textbf{il ne servirait pas forcément les gens plus vite}. Il exécute donc des tâches concurrentes, sans parallélisation.
+\item\relax Si vous preniez le serveur \sout{un peu débile} synchrone du premier exemple et que vous en mettiez 5 derrière un comptoir, cela vous donnerait un parfait exemple de parallélisme (mais ce serait quand même du gaspillage de ressources). \smiley{clin.svg}
+\end{itemize}
+
+
+\levelTwoTitle{Les threads et le \abbr{GIL}{Global Interpreter Lock}}
+
+
+L’immense majorité des systèmes d’exploitation modernes propose un mécanisme natif et relativement commode pour réaliser des programmes concurrents : les threads. Un processus (au sens système) peut partager son travail en plusieurs fils d’exécution concurrents, que l’on appelle des \textit{threads}. Ces threads ont le double avantage d’être plus légers à créer qu’un processus, et de \textbf{partager} leur mémoire, ce qui leur permet de communiquer de façon extrêmement efficace.
+
+
+
+En fait, dans la famille des langages dits \textit{système} (C, C++, Go, Rust…), plusieurs threads peuvent même s’exécuter en parallèle, en utilisant tous les cœurs de traitement que le système d’exploitation met à leur disposition. \textbf{Mais pas en Python}, ni dans aucun autre langage de la même famille que lui (Ruby, PHP, Javascript…). En effet, l’interpréteur Python implémente ce que l’on appelle un \abbr{GIL}{Global Interpreter Lock}. Ce système a pour avantage de simplifier son architecture et sa conception : un code en Python ne peut être exécuté par l’interpréteur que si celui-ci est possesseur du \abbr{GIL}{Global Interpreter Lock}, et bien évidemment un seul thread peut posséder le \abbr{GIL}{Global Interpreter Lock} à un instant donné. Ainsi, même si deux threads d’un même programme en Python sont exécutés sur deux cœurs de processeur distincts, le \abbr{GIL}{Global Interpreter Lock} les contraint à ne jamais pouvoir s’exécuter en parallèle (ce qui apporte de nombreuses garanties dans le code interne de l’interpréteur).
+
+
+
+Malgré cette contrainte, lorsqu’un thread doit réaliser une opération d’entrée-sortie (une \textbf{IO}, comme lire dans un fichier ou établir une connexion réseau), le système d’exploitation est suffisamment intelligent pour ne pas lui rendre la main tant que l’opération n’est pas terminée, ce qui fait que les threads sont une façon relativement commode de concevoir des programmes qui réalisent beaucoup d’opérations d’entrée-sortie en concurrence.
+
+
+
+\begin{Question}
+Alors pourquoi tu nous bassines avec \CodeInline{asyncio} puisqu’on peut utiliser des threads ?
+\end{Question}
+
+
+Je peux vous donner deux raisons principales :
+
+
+
+\begin{enumerate}
+\item\relax \textbf{Le \abbr{GIL}{Global Interpreter Lock} coûte cher.}
+\item\relax \textbf{On ne sait jamais quand un thread va se mettre en pause.}
+\end{enumerate}
+
+
+La première raison est bassement technique : le \abbr{GIL}{Global Interpreter Lock} est une force de frottement dans l’interpréteur Python. Sa gestion picore sur le temps d’exécution des threads, de façon proportionnelle au nombre de tâches concurrentes en cours d’exécution. En somme, plus il y a de threads, plus le programme est ralenti, ce qui est embarrassant dans de nombreuses applications.
+
+
+
+Imaginez un serveur de chat réalisé avec le module \CodeInline{socketserver}. Chaque fois qu’un client se connecte, le serveur va lancer un nouveau thread pour gérer la connexion. Plus il y aura de gens connectés, plus le serveur sera ralenti, non pas à cause du plus grand nombre d’entrées-sorties, mais bêtement \textit{à cause du \abbr{GIL}{Global Interpreter Lock}} qui va utiliser du temps de calcul uniquement pour orchestrer le travail du serveur. En somme, il arrivera un seuil au-delà duquel le serveur ne passera plus à l’échelle à cause de l’interpréteur Python et d’une contrainte sur laquelle le développeur n’a aucune maîtrise.
+
+
+
+La seconde raison est également très importante : par nature, les threads \textit{partagent leur mémoire}. En particulier cela leur permet d’agir sur des données partagées, de façon concurrente, sauf que vous ne pouvez jamais savoir quand un thread sera mis en pause pour laisser travailler les autres, donc si vous n’utilisez pas de mécanismes de \textit{synchronisation} (comme des verrous, des mutexes, des sémaphores), \textbf{vous n’avez absolument aucune garantie} que personne ne viendra vous marcher sur les pieds pendant que vous touchez à une donnée. Cela rend la programmation multithread \textit{fastidieuse}, non seulement parce que les bugs qu’elle introduit (\textit{race conditions}, \textit{deadlocks}) sont extrêmement difficiles à prévoir, et encore plus à diagnostiquer, mais également parce que le remède à cette catégorie de bugs a lui-même un coût (du même ordre que celui du \abbr{GIL}{Global Interpreter Lock}).
+
+
+
+En somme, même s’il est très facile de multi-threader un programme sans pratiquement en modifier la source, le système de concurrence lui-même pose quelques freins à la réalisation d’applications qui passent à l’échelle et croissent en complexité avec le temps, au fil des nouvelles fonctionnalités.
+
+
+
+\levelTwoTitle{Les IO asynchrones}
+
+
+Pour les raisons expliquées plus haut, \CodeInline{asyncio} propose un modèle de concurrence :
+
+
+
+\begin{itemize}
+\item\relax Où les interruptions sont prédictibles et explicites, donc tout le code entre deux interruptions est \textit{atomique} : si vous ne placez pas d’interruption explicite entre deux lignes de code celles-ci seront exécutées d’un bloc, sans risque de modification extérieure.
+\item\relax Où l’ordonnancement entre les tâches n’est pas réalisé par le système d’exploitation, mais dans le \textit{userland} et de façon plus intelligente et adaptée à la nature des tâches à exécuter en concurrence.
+\end{itemize}
+
+
+Vous aurez compris que les tâches concurrentes en question sont des \textbf{entrées-sorties}, ou \textbf{IO}, mais de quoi parlons-nous exactement ?
+
+
+
+Une \textbf{IO}, au sens large, est une tâche pendant laquelle votre programme attend un résultat qui vient de l’extérieur. Dans le contexte d’un programme en Python cela peut être :
+
+
+
+\begin{itemize}
+\item\relax L’échange de données sur une connexion réseau,
+\item\relax L’ouverture, la lecture ou l’écriture d’un fichier,
+\item\relax L’exécution d’un programme dans un sous-processus,
+\item\relax L’attente d’événements qui viendraient de périphériques de la machine…
+\end{itemize}
+
+
+En somme, si l’on considère toutes ces opérations comme des interactions avec des services extérieurs à votre programme, celui-ci devient une sorte de grand chef d’orchestre qui se contente de communiquer avec ces services. C’est typiquement dans ce genre d’activité que la programmation asynchrone excelle. Il vous suffit de formuler votre programme en identifiant clairement quelles \textbf{IO} celui-ci doit réaliser, lesquelles peuvent s’exécuter en parallèle, et parfois même transformer certaines tâches calculatoires en IO, pour que votre programme sache non seulement réaliser chaque tâche plus rapidement qu’avant, mais qu’il devienne également capable de traiter plusieurs de ces tâches en même temps !
+
+
+
+Je pense que vous aurez maintenant compris pourquoi les services web adoptent de plus en plus ce paradigme. Mais finissons-en avec cette trop longue introduction et commençons à regarder sous le capot, si vous le voulez bien.
+
+
+\levelOneTitle{Une boucle événementielle, c’est essentiel}
+
+La notion fondamentale autour de laquelle \CodeInline{asyncio} a été construite est celle
+de \textit{coroutine}.
+
+
+
+Une coroutine est une tâche qui peut décider de se suspendre elle-même au moyen
+du mot-clé \CodeInline{yield}, et attendre jusqu’à ce que le code qui la contrôle décide
+de lui rendre la main en \textit{itérant} dessus.
+
+
+
+On peut imaginer, par exemple, écrire la fonction suivante :
+
+
+
+\begin{CodeBlock}{python}
+def tic_tac():
+    print("Tic")
+    yield
+    print("Tac")
+    yield
+    return "Boum!"
+\end{CodeBlock}
+
+
+
+Cette fonction, puisqu’elle utilise le mot-clé \CodeInline{yield}, définit une
+\textit{coroutine}\textsuperscript{\footnotemark[1]}. Si on l’invoque, la fonction \CodeInline{tic\_tac} retourne une
+tâche prête à être exécutée, mais n’exécute pas les instructions qu’elle
+contient.
+
+
+
+\footnotetext[1]{En toute rigueur il s’agit d’un \textit{générateur}, mais comme nous avons
+pu l’observer dans un \externalLink{précédent
+article}{https://zestedesavoir.com/articles/232/la-puissance-cachee-des-coroutines/},
+les générateurs de Python sont implémentés comme de véritables coroutines.}
+
+\begin{CodeBlock}{pycon}
+>>> task = tic_tac()
+>>> task
+<generator object tic_tac at 0x7fe157023280>
+\end{CodeBlock}
+
+
+
+En termes de vocabulaire, on dira que notre fonction \CodeInline{tic\_tac} est une
+\textit{fonction coroutine}, c’est-à-dire une fonction qui \textbf{construit une
+coroutine}. La coroutine est contenue ici dans la variable \CodeInline{task}.
+
+
+
+Nous pouvons maintenant exécuter son code jusqu’au prochain \CodeInline{yield}, en nous
+servant de la fonction standard \CodeInline{next()} :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> next(task)
+Tic
+>>> next(task)
+Tac
+>>> next(task)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration: Boum!
+\end{CodeBlock}
+
+
+
+Lorsque la tâche est terminée, une exception \CodeInline{StopIteration} est levée.
+Celle-ci contient la valeur de retour de la coroutine. Jusqu’ici, rien de bien
+sorcier. Dès lors, on peut imaginer créer une petite boucle pour exécuter cette
+coroutine jusqu’à épuisement :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> task = tic_tac()
+>>> while True:
+...     try:
+...         next(task)
+...     except StopIteration as stop:
+...         print("valeur de retour:", repr(stop.value))
+...         break
+...
+Tic
+Tac
+valeur de retour: 'Boum!'
+\end{CodeBlock}
+
+
+
+Afin de nous affranchir de la sémantique des itérateurs de Python, créons une
+classe \CodeInline{Task} qui nous permettra de manipuler nos coroutines plus aisément :
+
+
+
+\begin{CodeBlock}{python}
+STATUS_NEW = 'NEW'
+STATUS_RUNNING = 'RUNNING'
+STATUS_FINISHED = 'FINISHED'
+STATUS_ERROR = 'ERROR'
+
+class Task:
+    def __init__(self, coro):
+        self.coro = coro  # Coroutine à exécuter
+        self.name = coro.__name__
+        self.status = STATUS_NEW  # Statut de la tâche
+        self.return_value = None  # Valeur de retour de la coroutine
+        self.error_value = None  # Exception levée par la coroutine
+
+    # Exécute la tâche jusqu'à la prochaine pause
+    def run(self):
+        try:
+            # On passe la tâche à l'état RUNNING et on l'exécute jusqu'à
+            # la prochaine suspension de la coroutine.
+            self.status = STATUS_RUNNING
+            next(self.coro)
+        except StopIteration as err:
+            # Si la coroutine se termine, la tâche passe à l'état FINISHED
+            # et on récupère sa valeur de retour.
+            self.status = STATUS_FINISHED
+            self.return_value = err.value
+        except Exception as err:
+            # Si une autre exception est levée durant l'exécution de la
+            # coroutine, la tâche passe à l'état ERROR, et on récupère
+            # l'exception pour laisser l'utilisateur la traiter.
+            self.status = STATUS_ERROR
+            self.error_value = err
+
+    def is_done(self):
+        return self.status in {STATUS_FINISHED, STATUS_ERROR}
+
+    def __repr__(self):
+        result = ''
+        if self.is_done():
+            result = " ({!r})".format(self.return_value or self.error_value)
+
+        return "<Task '{}' [{}]{}>".format(self.name, self.status, result)
+
+\end{CodeBlock}
+
+
+
+Son fonctionnement est plutôt simple. Réimplémentons notre boucle en nous
+servant de cette classe :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> task = Task(tic_tac())
+>>> task
+<Task 'tic_tac' [NEW]>
+>>> while not task.is_done():
+...     task.run()
+...     print(task)
+...
+Tic
+<Task 'tic_tac' [RUNNING]>
+Tac
+<Task 'tic_tac' [RUNNING]>
+<Task 'tic_tac' [FINISHED] ('Boom!')>
+>>> task.return_value
+'Boom!'
+\end{CodeBlock}
+
+
+
+Bien. Nous avons une classe qui nous permet de manipuler des tâches en cours
+d’exécution, ces tâches étant implémentées sous la forme de coroutines. Il ne
+nous reste plus qu’à trouver un moyen d’exécuter plusieurs coroutines de façon
+\textbf{concurrente}.
+
+
+
+En effet, tout l’intérêt de la programmation asynchrone est d’être capable d’occuper le
+programme pendant qu’une tâche donnée est en attente d’un événement, donc il faut trouver un moyen
+pour que, du moment qu’une tâche a décidé de se suspendre, les autres puissent se réveiller et travailler à leur tour.
+
+
+
+Pour cela, il suffit de construire une \textit{file d’attente} de tâches à exécuter.
+En Python, l’objet le plus pratique pour modéliser une file d’attente est la
+classe standard \CodeInline{collections.deque} (\textit{double-ended queue}). Cette classe
+possède les mêmes méthodes que les listes, auxquelles viennent s’ajouter :
+
+
+
+\begin{itemize}
+\item\relax \CodeInline{appendleft()} pour ajouter un élément au tout début de la liste,
+\item\relax \CodeInline{popleft()} pour retirer (et retourner) le premier élément de la liste.
+\end{itemize}
+
+
+Ainsi, il suffit ajouter les éléments à une extrémité de la file (\CodeInline{append()}),
+et consommer ceux de l’autre extrémité (\CodeInline{popleft()}). On pourrait arguer qu’il
+est possible d’ajouter des éléments n’importe où dans une liste avec la méthode
+\CodeInline{insert()}, mais la classe \CodeInline{deque} est vraiment \textit{faite pour} créer des files et
+des piles : ses opérations aux extrémités sont bien plus efficaces que la
+méthode \CodeInline{insert()}.
+
+
+
+Essayons d’exécuter en concurrence deux instances de notre coroutine \CodeInline{tic\_tac} :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> from collections import deque
+>>> running_tasks = deque()
+>>> running_tasks.append(Task(tic_tac()))
+>>> running_tasks.append(Task(tic_tac()))
+>>> while running_tasks:
+...     # On récupère une tâche en attente et on l'exécute
+...     task = running_tasks.popleft()
+...     task.run()
+...     if task.is_done():
+...         # Si la tâche est terminée, on l'affiche
+...         print(task)
+...     else:
+...         # La tâche n'est pas finie, on la replace au bout
+...         # de la file d'attente
+...         running_tasks.append(task)
+...
+Tic
+Tic
+Tac
+Tac
+<Task 'tic_tac' [FINISHED] ('Boom!')>
+<Task 'tic_tac' [FINISHED] ('Boom!')>
+\end{CodeBlock}
+
+
+
+Voilà qui est intéressant : la sortie des deux coroutines est entremêlée !
+Cela signifie que les deux tâches ont été exécutées simultanément, de façon
+\textbf{concurrente}.
+
+
+
+Nous avons tout ce qu’il nous faut pour modéliser une boucle événementielle,
+c’est-à-dire une boucle qui s’occupe de programmer l’exécution et le réveil
+des tâches dont elle a la charge. Implémentons celle-ci dans la classe \CodeInline{Loop}
+suivante :
+
+
+
+\begin{CodeBlock}{python}
+from collections import deque
+
+class Loop:
+    def __init__(self):
+        self._running = deque()
+
+    def _loop(self):
+        task = self._running.popleft()
+        task.run()
+        if task.is_done():
+            print(task)
+            return
+        self.schedule(task)
+
+    def run_until_empty(self):
+        while self._running:
+            self._loop()
+
+    def schedule(self, task):
+        if not isinstance(task, Task):
+            task = Task(task)
+        self._running.append(task)
+        return task
+\end{CodeBlock}
+
+
+
+Vérifions :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> def spam():
+...     print("Spam")
+...     yield
+...     print("Eggs")
+...     yield
+...     print("Bacon")
+...     yield
+...     return "SPAM!"
+...
+>>> event_loop = Loop()
+>>> event_loop.schedule(tic_tac())
+>>> event_loop.schedule(spam())
+>>> event_loop.run_until_empty()
+Tic
+Spam
+Tac
+Eggs
+<Task 'tic_tac' [FINISHED] ('Boom!')>
+Bacon
+<Task 'spam' [FINISHED] ('SPAM!')>
+\end{CodeBlock}
+
+
+
+Tout fonctionne parfaitement. Dotons tout de même notre classe \CodeInline{Loop} d’une
+dernière méthode pour exécuter la boucle jusqu’à épuisement d’une coroutine en
+particulier :
+
+
+
+\begin{CodeBlock}{python}
+class Loop:
+    # ...
+    def run_until_complete(self, task):
+        task = self.schedule(task)
+        while not task.is_done():
+            self._loop()
+\end{CodeBlock}
+
+
+
+Testons-la :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> event_loop = Loop()
+>>> event_loop.run_until_complete(tic_tac())
+Tic
+Tac
+<Task 'tic_tac' [FINISHED] ('Boom!')>
+\end{CodeBlock}
+
+
+
+Pas de surprise.
+
+
+
+Toute la programmation asynchrone repose sur ce genre de boucle qui sert en
+fait d'\textit{ordonnanceur} aux tâches en cours d’exécution. Pour vous en convaincre,
+regardez ce bout de code qui utilise \CodeInline{asyncio} :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> import asyncio
+>>> loop = asyncio.get_event_loop()
+>>> loop.run_until_complete(tic_tac())
+Tic
+Tac
+'Boom!'
+>>> loop.run_until_complete(asyncio.wait([tic_tac(), spam()]))
+Spam
+Tic
+Eggs
+Tac
+Bacon
+({Task(<tic_tac>)<result='Boom!'>, Task(<spam>)<result='SPAM!'>}, set())
+\end{CodeBlock}
+
+
+
+Drôlement familier, n’est-ce pas ? Ne bloquez pas sur la fonction
+\CodeInline{asyncio.wait} : il s’agit simplement d’une coroutine qui sert à lancer
+plusieurs tâches en même temps et attendre que celles-ci se terminent avant de
+retourner.
+
+
+
+\begin{Information}
+Les \CodeInline{yield} sont des "interruptions système" !
+\end{Information}
+
+
+Dans la réalité, la boucle événementielle réalise un peu plus de travail que ce que nous venons de faire.
+En particulier, elle est capable de dire, à chaque instant, quelles tâches sont en attente de quelle IO, et de les réveiller lorsque l’IO en question est terminée. Nous ne coderons pas ce mécanisme dans cet article (car il ajouterait pas mal de complexité pour peu de choses), mais il est important que vous compreniez dès maintenant que \textbf{chaque fois qu’une coroutine se met en attente d’une IO ou d’un autre événement, celle-ci se suspend avec \CodeInline{yield}}.
+
+
+
+Si l’on fait un parallèle avec la programmation système, on peut considérer un \CodeInline{yield} comme une \textit{interruption système} pendant laquelle un processus laisse la main au noyau du système d’exploitation. C’est grâce à ce mécanisme que sont réalisés les appels système, y compris ceux qui servent à réaliser des IO.
+
+
+
+Cela veut dire que dans un code asynchrone "de la vraie vie" on n’écrit \textbf{jamais} explicitement \CodeInline{yield} ; on appelle plutôt des coroutines "natives" qui le font pour nous. Ces coroutines spéciales peuvent êtres vues comme des appels-système ("ouvre ce fichier", "attends qu’il y ait quelque chose à lire sur cette socket", "réveille moi dans 3 secondes"…).
+
+
+
+
+\levelOneTitle{Appels de coroutines}
+
+Vous aurez donc compris qu’un programme asynchrone doit être écrit dans des \textit{coroutines} puisque tout repose sur le fait que celles-ci sont interruptibles.
+
+
+
+Supposons maintenant qu’une coroutine ait besoin de faire appel à une autre coroutine, pour lui déléguer du travail ou bien lui demander comme nous l’avons mentionné juste au-dessus, de réaliser une IO. Nous avons alors deux cas de figure :
+
+
+
+\begin{itemize}
+\item\relax Soit nous voulons appeler cette nouvelle coroutine de façon \textit{séquentielle}, et lui laisser la main en attendant qu’elle ait fini de travailler.
+\item\relax Soit nous voulons que cette nouvelle coroutine s’exécute de façon \textit{concurrente}.
+\end{itemize}
+
+
+Voyons un peu comment cela se passe.
+
+
+
+\levelTwoTitle{Appel séquentiel}
+
+
+Pour le premier cas de figure, rappelons d’abord que la syntaxe \CodeInline{yield from}
+introduite dans le langage depuis Python 3.3 nous permet de passer la main
+à une autre coroutine. Par exemple, dans le code suivant, la coroutine
+\CodeInline{example} utilise cette syntaxe pour laisser temporairement la main à la
+coroutine \CodeInline{subtask} :
+
+
+
+\begin{CodeBlock}{python}
+def example():
+    print("Tâche 'example'")
+    print("Lancement de la tâche 'subtask'")
+    yield from subtask()
+    print("Retour dans 'example'")
+    for _ in range(3):
+        print("(example)")
+        yield
+
+def subtask():
+    print("Tâche 'subtask'")
+    for _ in range(2):
+        print("(subtask)")
+        yield
+\end{CodeBlock}
+
+
+
+Vérifions :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> event_loop = Loop()
+>>> event_loop.run_until_complete(example())
+Tâche 'example'
+Lancement de la tâche 'subtask'
+Tâche 'subtask'
+(subtask)
+(subtask)
+Retour dans 'example'
+(example)
+(example)
+(example)
+<Task 'example' [FINISHED] (None)>
+\end{CodeBlock}
+
+
+
+Ainsi, Python nous fournit déjà nativement un élément de syntaxe pour \textit{lancer
+une tâche de façon séquentielle} à l’intérieur d’une coroutine : \CodeInline{yield from}, tout simplement.
+
+
+
+\levelTwoTitle{Lancement d’une tâche concurrente}
+
+
+Pour lancer une tâche concurrente, il suffit de la programmer dans la boucle événementielle. \CodeInline{asyncio} nous propose pour cela une fonction \CodeInline{ensure\_future()} qui permet de le faire avec sa boucle événementielle par défaut. Voici comment nous pourrions la reproduire dans notre mini-framework :
+
+
+
+\begin{CodeBlock}{python}
+DEFAULT_LOOP = Loop()
+
+
+def ensure_future(coro, loop=None):
+    if loop is None:
+        loop = DEFAULT_LOOP
+    return loop.schedule(coro)
+\end{CodeBlock}
+
+
+
+Modifions un notre coroutine \CodeInline{example} en conséquence :
+
+
+
+\begin{CodeBlock}{python}
+def example():
+    print("Tâche 'example'")
+    print("Lancement de la tâche 'subtask'")
+    ensure_future(subtask())   # <- appel à ensure_future au lieu de yield from
+    print("Retour dans 'example'")
+    for _ in range(3):
+        print("(example)")
+        yield
+\end{CodeBlock}
+
+
+
+Et voilà le résultat :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> event_loop = DEFAULT_LOOP
+>>> event_loop.run_until_complete(example())
+Tâche 'example'
+Lancement de la tâche 'subtask'
+Retour dans 'example'
+(example)
+Tâche 'subtask'
+(subtask)
+(example)
+(subtask)
+(example)
+<Task 'subtask' [FINISHED] (None)>
+<Task 'example' [FINISHED] (None)>
+\end{CodeBlock}
+
+
+
+Magique, n’est-ce pas ?
+
+
+
+Par contre, une fois que notre coroutine est lancée, nous n’avons pas tout à
+fait le contrôle de son exécution. Par exemple, si nous rendions la tâche
+\CodeInline{subtask} plus longue qu'\CodeInline{example}, celle-ci lui « survivrait » :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> def subtask():
+...     print("Tâche 'subtask'")
+...     for _ in range(5):
+...         print("(subtask)")
+...         yield
+...
+>>> event_loop.run_until_complete(example())
+Tâche 'example'
+Lancement de la tâche 'subtask'
+Retour dans 'example'
+(example)
+Tâche 'subtask'
+(subtask)
+(example)
+(subtask)
+(example)
+(subtask)
+<Task 'example' [FINISHED] (None)>
+\end{CodeBlock}
+
+
+
+L’exécution s’arrête avec la fin de la coroutine \CodeInline{example}, mais la coroutine
+\CodeInline{subtask}, elle, n’a pas fini. Elle est encore suspendue dans la boucle, à
+l’état de zombie alors que le reste du programme est terminé. Vidons ce qu’il
+reste dans la boucle événementielle :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> event_loop.run_until_empty()
+(subtask)
+(subtask)
+<Task 'subtask' [FINISHED] (None)>
+\end{CodeBlock}
+
+
+
+\levelTwoTitle{Annulation d’une tâche}
+
+
+\textbf{Que faire si nous ne voulons pas qu’une coroutine quitte avant une
+sous-tâche qu’elle aurait lancée en parallèle ?}
+
+
+
+Nous avons deux solutions. La première, dont nous nous contenterons dans cet
+exemple, serait de pouvoir \textit{annuler} une tâche en cours d’exécution. Il nous
+suffit pour cela de créer un nouvel état dans notre classe \CodeInline{Task} :
+
+
+
+\begin{CodeBlock}{python}
+STATUS_CANCELLED = "CANCELLED"
+
+class Task:
+
+    # ...
+
+    def cancel(self):
+        if self.is_done():
+            # Inutile d'annuler une tâche déjà terminée
+            return
+        self.status = STATUS_CANCELLED
+
+    def is_cancelled(self):
+        return self.status == STATUS_CANCELLED
+\end{CodeBlock}
+
+
+
+Rajoutons un test dans la boucle événementielle pour déprogrammer les tâches
+annulées :
+
+
+
+\begin{CodeBlock}{python}
+class Loop:
+
+    # ...
+
+    def _loop(self):
+        task = self._running.popleft()
+
+        if task.is_cancelled():
+            # Si la tâche a été annulée,
+            # on ne l'exécute pas et on "l'oublie".
+            print(task)
+            return
+
+        # ... le reste de la méthode est identique
+\end{CodeBlock}
+
+
+
+Il ne nous reste plus qu’une petite coroutine utilitaire à écrire pour annuler
+une tâche en cours d’exécution :
+
+
+
+\begin{CodeBlock}{python}
+def cancel(task):
+    # On annule la tâche
+    task.cancel()
+    # On laisse la main à la boucle événementielle pour qu'elle ait l'occasion
+    # de prendre en compte l'annulation
+    yield
+
+def example():
+    print("Tâche 'example'")
+    print("Lancement de la tâche 'subtask'")
+    sub = ensure_future(subtask())
+    print("Retour dans 'example'")
+    for _ in range(3):
+        print("(example)")
+        yield
+    yield from cancel(sub)
+\end{CodeBlock}
+
+
+
+Vérifions :
+
+
+
+\begin{CodeBlock}{python}
+>>> event_loop.run_until_complete(example())
+Tâche 'example'
+Lancement de la tâche 'subtask'
+Retour dans 'example'
+(example)
+Tâche 'subtask'
+(subtask)
+(example)
+(subtask)
+(example)
+(subtask)
+<Task 'subtask' [CANCELLED]>
+<Task 'example' [FINISHED] (None)>
+\end{CodeBlock}
+
+
+
+Notre mécanisme d’annulation fonctionne comme prévu. Cela dit, on peut aussi
+imaginer tout simplement vouloir \textit{attendre} de façon asynchrone que la
+sous-tâche ait terminé son exécution avant de quitter proprement, et c’est la raison d’être de la coroutine \CodeInline{asyncio.wait()} que je vous ai montrée plus haut. \smiley{clin.svg}
+
+
+\levelOneTitle{La syntaxe asynchrone de Python 3.5}
+
+Maintenant que nous avons compris comment la boucle d'\CodeInline{asyncio} se débrouille pour exécuter des coroutines de façon concurrente, il est temps de l’utiliser pour de bon.
+
+
+
+Commençons par adopter la syntaxe de Python 3.5. En réalité, la boucle événementielle et la fonction \CodeInline{ensure\_future()} que nous avons programmées jusqu’à présent respectent exactement la même interface que celles d’asyncio. Cela dit, même s’il est absolument possible de continuer à définir des coroutines sous la forme de générateurs, Python 3.5 a introduit la syntaxe suivante :
+
+
+
+\begin{itemize}
+\item\relax Les coroutines se différencient des fonctions classiques en étant définies via la syntaxe \CodeInline{async def coroutine(...)} au lieu de \CodeInline{def coroutine(...)}.
+\item\relax À l’intérieur d’une coroutine, on utilisera le mot-clé \CodeInline{await} au lieu de \CodeInline{yield from} lorsque nous voudrons appeler séquentiellement une autre coroutine.
+\end{itemize}
+
+
+C’est quasiment tout ce qu’il y a à savoir sur la syntaxe (hormis quelques détails que nous découvrirons un peu plus loin).
+
+
+
+Que diriez-vous maintenant d’implémenter notre serveur de fast-food ? Cet exemple va nous servir de fil rouge jusqu’à la fin de cet article. Dans celui-ci, nous allons nous contenter de \textit{simuler} des entrées-sorties en appelant la coroutine \CodeInline{asyncio.sleep}.
+
+
+
+\begin{CodeBlock}{python}
+import asyncio
+from datetime import datetime
+
+
+async def get_soda(client):
+    print("    > Remplissage du soda pour {}".format(client))
+    await asyncio.sleep(1)
+    print("    < Le soda de {} est prêt".format(client))
+
+async def get_fries(client):
+    print("    > Démarrage de la cuisson des frites pour {}".format(client))
+    await asyncio.sleep(4)
+    print("    < Les frites de {} sont prêtes".format(client))
+
+async def get_burger(client):
+    print("    > Commande du burger en cuisine pour {}".format(client))
+    await asyncio.sleep(3)
+    print("    < Le burger de {} est prêt".format(client))
+
+async def serve(client):
+    print("=> Commande passée par {}".format(client))
+    start_time = datetime.now()
+    await asyncio.wait(
+        [
+            get_soda(client),
+            get_fries(client),
+            get_burger(client)
+        ]
+    )
+    total = datetime.now() - start_time
+    print("<= {} servi en {}".format(client, datetime.now() - start_time))
+    return total
+\end{CodeBlock}
+
+
+
+Rien de franchement dépaysant.
+Pour exécuter ce code, là aussi l’API est sensiblement la même que notre classe \CodeInline{Loop} :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop = asyncio.get_event_loop()
+>>> loop.run_until_complete(serve("A"))
+=> Commande passée par A
+    > Remplissage du soda pour A
+    > Commande du burger en cuisine pour A
+    > Démarrage de la cuisson des frites pour A
+    < Le soda de A est prêt
+    < Le burger de A est prêt
+    < Les frites de A sont prêtes
+<= A servi en 0:00:04.003105
+\end{CodeBlock}
+
+
+
+Pas d’erreur de syntaxe, le code fonctionne. On peut commencer à travailler.
+
+
+\levelOneTitle{Le problème du fast-food}
+
+Remarquons dans un premier temps que notre serveur \textbf{manque de réalisme}. En
+effet, si nous lui demandons de servir deux clients en même temps, voilà ce qui
+se produit :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop.run_until_complete(
+...     asyncio.wait([serve("A"), serve("B")])
+... )
+=> Commande passée par A
+=> Commande passée par B
+    > Remplissage du soda pour A
+    > Commande du burger en cuisine pour A
+    > Démarrage de la cuisson des frites pour A
+    > Démarrage de la cuisson des frites pour B
+    > Remplissage du soda pour B
+    > Commande du burger en cuisine pour B
+    < Le soda de A est prêt
+    < Le soda de B est prêt
+    < Le burger de A est prêt
+    < Le burger de B est prêt
+    < Les frites de A sont prêtes
+    < Les frites de B sont prêtes
+<= A servi en 0:00:04.002609
+<= B servi en 0:00:04.002792
+\end{CodeBlock}
+
+
+
+Les deux commandes ont été servies simultanément, de la même façon. La
+préparation des trois ingrédients s’est chevauchée, comme s’il était possible
+de faire couler une infinité de sodas, de cuire une infinité de
+frites \textit{à la demande} pour les clients, et de préparer une infinité de
+hamburgers en parallèle.
+
+
+
+En bref : \textbf{notre modélisation manque de contraintes}.
+
+
+
+Pour améliorer ce programme, nous allons modéliser les contraintes suivantes :
+
+
+
+\begin{itemize}
+\item\relax La machine à sodas ne peut faire couler \textbf{qu’un seul soda à la fois}. Dans
+une application réelle, cela reviendrait à \textit{requêter un service synchrone
+qui ne supporte pas les accès concurrents} ;
+\item\relax Il n’y a que 3 cuisiniers dans le restaurant, donc \textbf{on ne peut pas préparer
+plus de trois hamburgers en même temps}. Dans la réalité, cela revient à
+\textit{requêter un service synchrone dont trois instances tournent en parallèle} ;
+\item\relax Le bac à frites s’utilise en faisant cuire 5 portions de frites d’un coup,
+pour servir ensuite 5 clients instantanément. Dans la réalité, cela revient,
+à peu de choses près, à \textit{simuler un service synchrone qui fonctionne avec un
+cache}.
+\end{itemize}
+
+
+La machine à soda est certainement la plus simple. Il est possible de
+verrouiller une ressource de manière à ce qu’une seule tâche puisse y accéder à
+la fois, en utilisant ce que l’on appelle un \textbf{verrou} (\CodeInline{asyncio.Lock}).
+Plaçons un verrou sur notre machine à soda :
+
+
+
+\begin{CodeBlock}{python}
+SODA_LOCK = asyncio.Lock()
+
+async def get_soda(client):
+    # Acquisition du verrou
+    # la syntaxe 'async with FOO' peut être lue comme 'with (yield from FOO)'
+    async with SODA_LOCK:
+        # Une seule tâche à la fois peut exécuter ce bloc
+        print("    > Remplissage du soda pour {}".format(client))
+        await asyncio.sleep(1)
+        print("    < Le soda de {} est prêt".format(client))
+\end{CodeBlock}
+
+
+
+Le \CodeInline{async with SODA\_LOCK} signifie que lorsque le serveur arrive à la
+machine à soda pour y déposer un gobelet :
+
+
+
+\begin{itemize}
+\item\relax soit la machine est libre (déverrouillée), auquel cas il peut la verrouiller
+pour l’utiliser immédiatement,
+\item\relax soit celle-ci est déjà en train de fonctionner, auquel cas il attend (de façon asynchrone, donc en rendant la main) que le
+soda en cours de préparation soit prêt avant de verrouiller la machine à son
+tour.
+\end{itemize}
+
+
+Passons à la cuisine. Seuls 3 burgers peuvent être fabriqués en même temps. Cela
+peut se modéliser en utilisant un \textbf{sémaphore} (\CodeInline{asyncio.Semaphore}), qui est
+une sorte de "verrou multiple". On l’utilise pour qu’au plus N tâches
+puissent exécuter un morceau de code à un instant donné.
+
+
+
+\begin{CodeBlock}{python}
+BURGER_SEM = asyncio.Semaphore(3)
+
+async def get_burger(client):
+    print("    > Commande du burger en cuisine pour {}".format(client))
+    async with BURGER_SEM:
+        await asyncio.sleep(3)
+        print("    < Le burger de {} est prêt".format(client))
+\end{CodeBlock}
+
+
+
+Le \CodeInline{async with BURGER\_SEM} veut dire que lorsqu’une commande est passée
+en cuisine :
+
+
+
+\begin{itemize}
+\item\relax soit il y a un cuisinier libre, et celui-ci commence immédiatement à
+préparer le hamburger,
+\item\relax soit tous les cuisiniers sont occupés, auquel cas on attend qu’il y en ait un
+qui se libère pour s’occuper de notre hamburger.
+\end{itemize}
+
+
+Passons enfin au bac à frites. Cette fois, \CodeInline{asyncio} ne nous fournira pas
+d’objet magique, donc il va nous falloir réfléchir un peu plus. Il faut que
+l’on puisse l’utiliser \textit{une fois} pour faire les frites des 5 prochaines
+commandes. Dans ce cas, un compteur semble une bonne idée :
+
+
+
+\begin{itemize}
+\item\relax Chaque fois que l’on prend une portion de frites, on décrémente le compteur ;
+\item\relax S’il n’y a plus de frites dans le bac, il faut en refaire.
+\end{itemize}
+
+
+Mais attention, si les frites sont déjà en cours de préparation, il est inutile de
+lancer une nouvelle fournée !
+
+
+
+Voici comment on pourrait s’y prendre :
+
+
+
+\begin{CodeBlock}{python}
+FRIES_COUNTER = 0
+FRIES_LOCK = asyncio.Lock()
+
+async def get_fries(client):
+    global FRIES_COUNTER
+    async with FRIES_LOCK:
+        print("    > Récupération des frites pour {}".format(client))
+        if FRIES_COUNTER == 0:
+            print("   ** Démarrage de la cuisson des frites")
+            await asyncio.sleep(4)
+            FRIES_COUNTER = 5
+            print("   ** Les frites sont cuites")
+        FRIES_COUNTER -= 1
+        print("    < Les frites de {} sont prêtes".format(client))
+\end{CodeBlock}
+
+
+
+Dans cet exemple, on place un verrou sur le bac à frites pour qu’un seul
+serveur puisse y accéder à la fois. Lorsqu’un serveur arrive devant le bac à
+frites, soit celui-ci contient encore des portions de frites, auquel cas il en
+récupère une et retourne immédiatement, soit le bac est vide, donc le serveur
+met des frites à cuire avant de pouvoir en récupérer une portion.
+
+
+
+À l’exécution :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop.run_until_complete(asyncio.wait([serve('A'), serve('B')]))
+=> Commande passée par B
+=> Commande passée par A
+    > Remplissage du soda pour B
+    > Récupération des frites pour B
+   ** Démarrage de la cuisson des frites
+    > Commande du burger en cuisine pour B
+    > Commande du burger en cuisine pour A
+    < Le soda de B est prêt
+    > Remplissage du soda pour A
+    < Le soda de A est prêt
+    < Le burger de B est prêt
+    < Le burger de A est prêt
+   ** Les frites sont cuites
+    < Les frites de B sont prêtes
+    > Récupération des frites pour A
+    < Les frites de A sont prêtes
+<= B servi en 0:00:04.003111
+<= A servi en 0:00:04.003093
+\end{CodeBlock}
+
+
+
+Nos deux tâches prennent toujours le même temps à s’exécuter, mais
+s’arrangent pour ne pas accéder simultanément à la machine à sodas ni au bac à
+frites.
+
+
+
+Voyons maintenant ce que cela donne si 10 clients passent commande en même
+temps :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop.run_until_complete(
+...     asyncio.wait([serve(clt) for clt in 'ABCDEFGHIJ'])
+... )
+...
+# ... sortie filtrée ...
+<= C servi en 0:00:04.004512
+<= D servi en 0:00:04.004378
+<= E servi en 0:00:04.004262
+<= F servi en 0:00:06.008072
+<= A servi en 0:00:06.008074
+<= G servi en 0:00:08.006399
+<= H servi en 0:00:09.009187
+<= B servi en 0:00:09.009118
+<= I servi en 0:00:09.015023
+<= J servi en 0:00:12.011539
+\end{CodeBlock}
+
+
+
+On se rend compte que les performances de notre serveur de fast-food se
+dégradent : certains clients attendent jusqu’à trois fois plus longtemps que
+les autres.
+
+
+
+Cela n’a rien de surprenant. En fait, les performances d’une application
+asynchrone ne se mesurent pas en \textit{nombre de tâches traitées simultanément},
+mais plutôt, comme n’importe quel serveur, en \textit{nombre de tâches traitées dans
+le temps}. Il est évident que si 10 clients viennent manger dans un fast-food,
+il y a relativement peu de chances qu’ils arrivent tous en même temps : ils
+vont plutôt passer leur commande à raison d’une par seconde, par exemple.
+
+
+
+Par contre, il est très important de noter que c’est bien \textit{le temps d’attente}
+individuel de chaque client qui compte pour mesurer les performances (la
+qualité) du service. Si un client attend trop longtemps, il ne sera pas
+satisfait, peu importe s’il est tout seul dans le restaurant ou que celui-ci
+est bondé.
+
+
+
+Pour ces raisons, il faut que nous ayons une idée des \textbf{objectifs de
+performances} de notre serveur, c’est-à-dire que nous fixions, comme but :
+
+
+
+\begin{itemize}
+\item\relax un \textit{temps d’attente maximal} à ne pas dépasser pour servir un client,
+\item\relax un \textit{volume} de requêtes à tenir par seconde.
+\end{itemize}
+
+
+Écrivons maintenant une coroutine pour tester les performances
+de notre serveur :
+
+
+
+\begin{CodeBlock}{python}
+async def perf_test(nb_requests, period, timeout):
+    tasks = []
+    # On lance 'nb_requests' commandes à 'period' secondes d'intervalle
+    for idx in range(1, nb_requests + 1):
+        client_name = "client_{}".format(idx)
+        tsk = asyncio.ensure_future(serve(client_name))
+        tasks.append(tsk)
+        await asyncio.sleep(period)
+
+    finished, _ = await asyncio.wait(tasks)
+    success = set()
+    for tsk in finished:
+        if tsk.result().seconds < timeout:
+            success.add(tsk)
+
+    print("{}/{} clients satisfaits".format(len(success), len(finished)))
+\end{CodeBlock}
+
+
+
+Cette coroutine va lancer un certain nombre de commandes, régulièrement, et
+compter à la fin le nombre de commandes qui ont été honorées dans les temps.
+
+
+
+Essayons de lancer 10 commandes à 1 seconde d’intervalle, avec pour
+objectif que les clients soient servis en 5 secondes maximum :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop.run_until_complete(perf_test(10, 1, 5))
+# ... sortie filtrée ...
+<= client_1 servi en 0:00:04.004044
+<= client_2 servi en 0:00:03.002792
+<= client_3 servi en 0:00:03.003338
+<= client_4 servi en 0:00:03.003653
+<= client_5 servi en 0:00:03.003815
+<= client_6 servi en 0:00:04.003746
+<= client_7 servi en 0:00:03.003412
+<= client_8 servi en 0:00:03.002512
+<= client_9 servi en 0:00:03.003409
+<= client_10 servi en 0:00:03.003622
+10/10 clients satisfaits
+\end{CodeBlock}
+
+
+
+Ce test nous indique que notre serveur tient facilement une charge d’un client
+par seconde. Essayons de monter en charge en passant à deux clients par
+seconde :
+
+
+
+\begin{CodeBlock}{pycon}
+>>> loop.run_until_complete(perf_test(10, 0.5, 5))
+# ... sortie filtrée ...
+<= client_1 servi en 0:00:04.002629
+<= client_2 servi en 0:00:03.502093
+<= client_3 servi en 0:00:03.002863
+<= client_4 servi en 0:00:04.500168
+<= client_5 servi en 0:00:04.500226
+<= client_6 servi en 0:00:05.499894
+<= client_7 servi en 0:00:05.999704
+<= client_8 servi en 0:00:05.998824
+<= client_9 servi en 0:00:05.999883
+<= client_10 servi en 0:00:07.498776
+5/10 clients satisfaits
+\end{CodeBlock}
+
+
+
+À deux clients par seconde, notre serveur n’offre plus de performances
+satisfaisantes pour la moitié des commandes.
+
+
+
+Nous pouvons donc poser le problème d’optimisation suivant : le gérant du
+restaurant veut devenir capable de servir 2 clients par seconde avec un temps
+de traitement inférieur à 5 secondes par commande. Pour cela, il peut :
+
+
+
+\begin{itemize}
+\item\relax Acheter de nouvelles machines à sodas ;
+\item\relax Embaucher de nouveaux cuisiniers ;
+\item\relax Remplacer son bac à frites (capable de cuire 5 portions en 4 secondes) par un
+nouveau, qui peut faire cuire 8 portions en 4 secondes.
+\end{itemize}
+
+
+Évidemment, chacune de ces solutions a un coût, donc il est préférable pour le
+gérant de n’apporter que le moins possible de modifications pour tenir son
+objectif. Si l’on voulait faire une analogie avec une application réelle :
+
+
+
+\begin{itemize}
+\item\relax Acheter une seconde machine à sodas coûterait une augmentation de à 100\% du CPU + une augmentation de 100\% de la RAM consommés par le service "soda".
+\item\relax Embaucher un quatrième cuisinier coûterait 33\% de CPU supplémentaire (puisqu’il n’y a actuellement que 3 cuisiniers) +
+une augmentation de 33\% de la RAM consommée par le service "cuisine".
+\item\relax Le remplacement du bac à frites augmenterait uniquement de 60\% la
+consommation de RAM de ce service…
+\end{itemize}
+
+
+En guise d’exercice, vous pouvez vous amuser à modifier les contraintes de
+notre programme en conséquence pour observer l’impact de vos modifications sur
+les performances du serveur. \smiley{clin.svg}
+
+
+
+Vous trouverez une solution dans le bloc masqué ci-dessous.
+
+
+
+\begin{Spoiler}
+Pour servir une moyenne de 2 clients par seconde, le plus logique serait de se dire qu’il faut que chaque service soit capable de tenir ce rythme en régime établi. Prenons-les un par un :
+
+\begin{itemize}
+\item\relax La fontaine à sodas prend 1 seconde pour réaliser 1 soda. Si on en ajoute une deuxième, on devient alors capable de faire couler 2 sodas par seconde en moyenne.
+\item\relax Actuellement, on a 3 cuisiniers capables de préparer chacun un hamburger en 3 secondes : si on veut préparer 6 hamburgers en 3 secondes, il suffit d’avoir 6 cuisiniers, donc en embaucher 3 de plus.
+\item\relax Le bac à frites prépare 5 portions en 4 secondes, si on augmente sa capacité de stockage pour qu’elle soit au moins égale à 8 portions, on pourrait servir 8 portions en 4 secondes, donc une moyenne d’une portion toutes les demi-secondes.
+\end{itemize}
+Cela dit, imaginons que l’on n’ait pas les moyens d’embaucher un sixième cuisinier, on perd alors une demi-seconde tous les 6 clients servis, donc on sait qu’on ne pourra pas tenir le rythme indéfiniment. Une question intéressante à poser serait la suivante : est-ce que l’impact de ce retard ne peut pas être limité, en période de \textit{rush}, en investissant notre argent dans une friteuse encore un peu plus grande qui produirait 10 portions de frites toutes les 4 secondes ?
+\end{Spoiler}
+
+\begin{LevelOneConclusion}
+Ainsi s’achève votre initiation à \CodeInline{asyncio}. Cet article avait pour but de vous montrer :
+
+\begin{itemize}
+\item\relax l’intérêt de ce style programmation,
+\item\relax la façon dont tout cela est rendu possible grâce aux coroutines de Python,
+\item\relax la tête d’un code qui utilise \CodeInline{asyncio}.
+\end{itemize}
+J’espère avoir atteint ces trois objectifs, et vous avoir donné envie d’explorer plus avant cette bibliothèque.
+Il y a tant de choses à voir et à faire dessus que je me les réserve pour d’autres articles, à commencer par vous montrer des exemples de programmes bien réels tirant parti d'\CodeInline{asyncio}.
+
+Je souhaite remercier \externalLink{Vayel}{https://zestedesavoir.com/membres/voir/Vayel/} pour ses relectures attentives et ses nombreuses questions pertinentes. \smiley{smile.svg}
+\end{LevelOneConclusion}
+
+
+\end{document}
