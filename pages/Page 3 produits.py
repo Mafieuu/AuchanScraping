@@ -6,6 +6,16 @@ import numpy as np
 import hashlib
 
 
+st.set_page_config(page_title="Auchan", page_icon="🌋", layout="wide")
+st.header("🔔DASHBORD DE SUIVI DES PRIX DE AUCHAN SENEGAL")
+# Création de colonnes pour centrer l'image
+
+st.sidebar.image(
+    "images/Auchan-Logo.png",
+    caption="Dashbord Auchan",
+    use_column_width=True
+)
+
 # Charger les données JSON avec mise en cache pour améliorer les performances
 @st.cache_data
 def load_data():
@@ -78,7 +88,6 @@ def display_image(image_url):
     else:
         st.image(image_url, width=100)
 
-# Gestion des erreurs de données
 @st.cache_data
 def display_product_info(product):
     product_name = product.get("title", "Nom non disponible")
@@ -98,7 +107,10 @@ def display_product_info(product):
 st.markdown(
     "<div class='title'>Page des produits</div>", unsafe_allow_html=True
 )
-st.sidebar.markdown("# Produits")
+
+
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2: st.sidebar.markdown("# Produits")
 
 st.markdown("<div class='title'>Filtres des Produits</div>", unsafe_allow_html=True)
 
@@ -112,23 +124,36 @@ filter_page = st.radio(
 if filter_page == "Filtre par Catégorie":
     st.markdown("<div class='subtitle'>Produits par Catégorie et Sous-catégorie</div>", unsafe_allow_html=True)
     
-    # Filtre de recherche par catégorie et sous-catégorie
+    # Filtre de recherche par catégorie avec option "Tous"
+    category_options =  df["category"].unique().tolist() + ["Tous"]
     category_filter = st.selectbox(
-        "Sélectionnez une catégorie", options=df["category"].unique(), index=0
+        "Sélectionnez une catégorie", options=category_options, index=0
     )
     
-    # Pré-filtrer les sous-catégories après avoir sélectionné une catégorie
+    # Pré-filtrer les sous-catégories après avoir sélectionné une catégorie avec option "Tous"
+    if category_filter == "Tous":
+        subcategory_options = df["subcategory"].unique().tolist() + ["Tous"]
+    else:
+        subcategory_options = df[df["category"] == category_filter]["subcategory"].unique().tolist() + ["Tous"]
+
     subcategory_filter = st.selectbox(
         "Sélectionnez une sous-catégorie",
-        options=df[df["category"] == category_filter]["subcategory"].unique(),
+        options=subcategory_options,
         index=0,
     )
 
     # Filtrer les produits selon la catégorie et sous-catégorie
-    filtered_data = df[
-        (df["category"] == category_filter)
-        & (df["subcategory"] == subcategory_filter)
-    ]
+    if category_filter == "Tous" and subcategory_filter == "Tous":
+        filtered_data = df  # Affiche tous les produits
+    elif category_filter == "Tous":
+        filtered_data = df[df["subcategory"] == subcategory_filter]  # Affiche tous les produits de la sous-catégorie sélectionnée
+    elif subcategory_filter == "Tous":
+        filtered_data = df[df["category"] == category_filter]  # Affiche tous les produits de la catégorie sélectionnée
+    else:
+        filtered_data = df[
+            (df["category"] == category_filter) & 
+            (df["subcategory"] == subcategory_filter)
+        ]  # Filtre par catégorie et sous-catégorie
 
     if not filtered_data.empty:
         # Boucle sur les produits filtrés et affichage
@@ -148,6 +173,7 @@ if filter_page == "Filtre par Catégorie":
             st.markdown("---")
     else:
         st.info("Aucun produit trouvé pour cette catégorie.")
+
 
 # 4.2 Filtre par Nom de produit
 elif filter_page == "Filtre par Nom":

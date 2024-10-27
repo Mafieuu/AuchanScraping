@@ -8,11 +8,13 @@ import hashlib
 
 st.set_page_config(page_title="Auchan", page_icon="🌋", layout="wide")
 st.header("🔔DASHBORD DE SUIVI DES PRIX DE AUCHAN SENEGAL")
+# Création de colonnes pour centrer l'image
+
 st.sidebar.image(
     "images/Auchan-Logo.png",
-    caption="Dashbord Auchan"
+    caption="Dashbord Auchan",
+    use_column_width=True
 )
-
 # Charger les données JSON avec mise en cache pour améliorer les performances
 @st.cache_data
 def load_data():
@@ -70,8 +72,11 @@ st.markdown(
 
 
 # Nom de la page ...
-st.sidebar.markdown("# Page principale ")
-st.image("images/Photo1.jpeg")
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2: st.sidebar.markdown("# Page principale ")
+
+col1, col2, col3 = st.columns([1, 2, 1])
+with col1: st.image("images/Photo2.png", width=1000)
 
 # Pagination configuration
 @st.cache_data
@@ -109,7 +114,7 @@ def display_product_info(product):
 st.markdown(
         "<div class='title'>Dashboard des Produits</div>", unsafe_allow_html=True
     )
-st.markdown("### Vue d'ensemble des produits")
+st.markdown("## Vue d'ensemble des produits")
 
 # Chiffres clefs
 total_products = df["product_id"].nunique()
@@ -123,15 +128,22 @@ col2.metric("Catégories", total_categories)
 col3.metric("Sous-catégories", total_subcategories)
 col4.metric("En rupture de stock", out_of_stock_products)
 
+max_price_product = df.loc[df['price'].idxmax()]
+min_price_product = df.loc[df['price'].idxmin()]
+
+st.markdown("### Produit le plus cher")
+display_product_info(max_price_product)
+
+st.markdown("### Produit le moins cher")
+display_product_info(min_price_product)
+
 st.markdown("---")
 
-
+col1, col2 = st.columns([2, 2])
 
 # Graphique répartition des produits par catégorie
-st.markdown(
-    "<div class='subtitle'>Répartition des produits par catégorie</div>",
-    unsafe_allow_html=True,
-)
+
+
 category_count = df["category"].value_counts()
 fig = px.pie(
     values=category_count,
@@ -139,15 +151,10 @@ fig = px.pie(
     title="Répartition par catégorie",
 )
 fig.update_layout(title_font_size=24, legend_font_size=16)
-st.plotly_chart(fig, use_container_width=True)
-
-
+with col1: st.plotly_chart(fig, use_container_width=True)
 
 # Produits en rupture de stock
-st.markdown(
-    "<div class='subtitle'>Produits en rupture de stock</div>",
-    unsafe_allow_html=True,
-)
+
 out_of_stock_data = df[df["is_out_of_stock"] == True]
 if not out_of_stock_data.empty:
     fig2 = px.bar(
@@ -157,9 +164,8 @@ if not out_of_stock_data.empty:
         labels={"x": "Catégorie", "y": "Nombre de produits"},
     )
     fig2.update_layout(title_font_size=24, legend_font_size=16)
-    st.plotly_chart(fig2, use_container_width=True)
+    with col2: st.plotly_chart(fig2, use_container_width=True)
 else:
-    st.info("Aucun produit en rupture de stock.")
-
+    with col2: st.info("Aucun produit en rupture de stock.")
 
 

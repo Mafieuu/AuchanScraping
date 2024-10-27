@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -6,6 +5,16 @@ import json
 import numpy as np
 import hashlib
 
+
+st.set_page_config(page_title="Auchan", page_icon="🌋", layout="wide")
+st.header("🔔DASHBORD DE SUIVI DES PRIX DE AUCHAN SENEGAL")
+# Création de colonnes pour centrer l'image
+
+st.sidebar.image(
+    "images/Auchan-Logo.png",
+    caption="Dashbord Auchan",
+    use_column_width=True
+)
 
 # Charger les données JSON avec mise en cache pour améliorer les performances
 @st.cache_data
@@ -62,26 +71,37 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown("<div class='title'> Statistiques</div>", unsafe_allow_html=True)
 
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2: st.sidebar.markdown("# Page des statistiques")
 
-st.markdown(
-    "<div class='title'>Catégories de Produits</div>", unsafe_allow_html=True
-)
-st.sidebar.markdown("# Categories")
+col1, col2 = st.columns([2, 2])
 
-# Tableau des catégories
-st.markdown(
-    "<div class='subtitle'>Liste des Catégories</div>", unsafe_allow_html=True
-)
-st.dataframe(df[["category_id", "category"]].drop_duplicates(), height=300)
-
-# Diagramme circulaire de la répartition des produits dans chaque catégorie
-st.markdown(
-    "<div class='subtitle'>Répartition des Produits par Catégorie</div>",
+# Moyenne des prix par catégorie
+with col1: st.markdown(
+    "<div class='subtitle'>Moyenne des prix par catégorie</div>",
     unsafe_allow_html=True,
 )
-fig = px.pie(
-    df, names="category", title="Répartition des produits dans les catégories"
+avg_price = df.groupby("category")["price"].mean().reset_index()
+with col1: st.dataframe(avg_price, height=300)
+
+# Histogramme des prix
+with col2: st.markdown(
+    "<div class='subtitle'>Répartition des prix des produits</div>",
+    unsafe_allow_html=True,
+)
+fig = px.histogram(df, x="price", nbins=20, title="Histogramme des prix")
+fig.update_layout(title_font_size=24, legend_font_size=16)
+with col2: st.plotly_chart(fig, use_container_width=True)
+
+# Nuage de points (comparaison prix et catégorie)
+st.markdown(
+    "<div class='subtitle'>Nuage de points : Prix vs Catégorie</div>",
+    unsafe_allow_html=True,
+)
+fig = px.scatter(
+    df, x="category", y="price", color="category", title="Prix vs Catégorie"
 )
 fig.update_layout(title_font_size=24, legend_font_size=16)
 st.plotly_chart(fig, use_container_width=True)

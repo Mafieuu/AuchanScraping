@@ -5,6 +5,15 @@ import json
 import numpy as np
 import hashlib
 
+st.set_page_config(page_title="Auchan", page_icon="🌋", layout="wide")
+st.header("🔔DASHBORD DE SUIVI DES PRIX DE AUCHAN SENEGAL")
+# Création de colonnes pour centrer l'image
+
+st.sidebar.image(
+    "images/Auchan-Logo.png",
+    caption="Dashbord Auchan",
+    use_column_width=True
+)
 
 # Charger les données JSON avec mise en cache pour améliorer les performances
 @st.cache_data
@@ -26,7 +35,7 @@ def load_data():
     
     return df
 
-# Charger les données
+# Chargement des données
 df = load_data()
 
 st.markdown(
@@ -64,16 +73,20 @@ st.markdown(
 st.markdown(
     "<div class='title'>Sous-catégories de Produits</div>", unsafe_allow_html=True
 )
-st.sidebar.markdown("# Sous Categories ")
+
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2: st.sidebar.markdown("# Sous Categories ")
+
+col1, col2 = st.columns([2, 2])
 
 # Tableau des sous-catégories
-st.markdown(
+with col1: st.markdown(
     "<div class='subtitle'>Liste des Sous-catégories</div>", unsafe_allow_html=True
 )
-st.dataframe(df[["subcategory", "subcategory_id"]].drop_duplicates(), height=300)
+with col1: st.dataframe(df[["subcategory", "subcategory_id"]].drop_duplicates(), height=300)
 
 # Diagramme circulaire de la répartition des produits dans chaque sous-catégorie
-st.markdown(
+with col2: st.markdown(
     "<div class='subtitle'>Répartition des Produits par Sous-catégorie</div>",
     unsafe_allow_html=True,
 )
@@ -83,4 +96,4 @@ fig = px.pie(
     title="Répartition des produits dans les sous-catégories",
 )
 fig.update_layout(title_font_size=24, legend_font_size=16)
-st.plotly_chart(fig, use_container_width=True)
+with col2: st.plotly_chart(fig, use_container_width=True)
