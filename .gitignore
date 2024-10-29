@@ -1,0 +1,5 @@
+.pytest_cache/
+*.json
+__pycache__/
+task/
+env/
