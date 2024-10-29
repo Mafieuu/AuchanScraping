@@ -1,5 +1,4 @@
 *.json
-env/
 doc/TEXMFHOME/
 __pycache__/
 
@@ -7,4 +6,10 @@ __pycache__/
 doc/TEXMFHOME/
 # Ignorer tous les fichiers dans le dossier images
 ScrapyWorkspace/images/
-**/TEXMFHOME/ # Les fichiers latex sont générés grâce au package https://github.com/zestedesavoir/latex-template (pénible à utiliser)
+**/TEXMFHOME/
+.pytest_cache/
+*.json
+__pycache__/
+task/
+env/
+
