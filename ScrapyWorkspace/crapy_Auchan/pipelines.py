@@ -12,10 +12,10 @@ import pymysql
 class CrapyAuchanPipeline:
     def __init__(self):
         self.conn = pymysql.connect(
-            host='localhost',
-            user='root',
-            password='090302M@ty',
-            database='auchan'
+            host='db-auchan.c5esoc4g6qck.eu-west-3.rds.amazonaws.com',
+            user='admin',
+            password='MNdione2024',
+            database='bdccAuchan'
         )
 
         self.cur = self.conn.cursor()
@@ -25,7 +25,7 @@ class CrapyAuchanPipeline:
 
         # Table catégorie
         self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS Categorie(
+            CREATE TABLE IF NOT EXISTS categorie(
                 idCategorie INTEGER PRIMARY KEY ,
                 nomCategorie VARCHAR(100)
             );
@@ -33,22 +33,22 @@ class CrapyAuchanPipeline:
 
         # Table sous-catégorie
         self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS SubCategorie(
+            CREATE TABLE IF NOT EXISTS subcategorie(
                 idSubCategorie INTEGER PRIMARY KEY ,
                 idCategorie INTEGER ,
-                FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ,
+                FOREIGN KEY (idCategorie) REFERENCES categorie(idCategorie) ,
                 nomSubCategorie VARCHAR(100)
             );
         """)
 
         # Tableau produit
         self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS Produit (
+            CREATE TABLE IF NOT EXISTS produit (
                 idProduit INTEGER PRIMARY KEY,
                 idSubCategorie INTEGER ,
-                FOREIGN KEY (idSubCategorie) REFERENCES SubCategorie(idSubCategorie) ,
+                FOREIGN KEY (idSubCategorie) REFERENCES subcategorie(idSubCategorie) ,
                 idCategorie INTEGER ,
-                FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ,
+                FOREIGN KEY (idCategorie) REFERENCES categorie(idCategorie) ,
                 nomProduit VARCHAR(150),
                 imageURL VARCHAR(350)
             );
@@ -56,9 +56,9 @@ class CrapyAuchanPipeline:
 
         # Table suivi
         self.cur.execute("""
-            CREATE TABLE IF NOT EXISTS Suivi(
+            CREATE TABLE IF NOT EXISTS suivi(
                 idProduit INTEGER NOT NULL,
-                FOREIGN KEY (idProduit) REFERENCES Produit(idProduit),
+                FOREIGN KEY (idProduit) REFERENCES produit(idProduit),
                 dateCollecte DATE NOT NULL,
                 prix VARCHAR(25) NOT NULL,
                 prixPromo VARCHAR(25),
@@ -72,7 +72,7 @@ class CrapyAuchanPipeline:
     def process_item(self, item, spider):
 
         self.cur.execute("""
-            SELECT * FROM Categorie WHERE idCategorie = %s
+            SELECT * FROM categorie WHERE idCategorie = %s
         """, (item["category_id"],))
         res_category = self.cur.fetchone()
 
@@ -80,14 +80,14 @@ class CrapyAuchanPipeline:
         #     spider.logger.warn("Category already in database: %s" % item['category_id'])
         if not res_category:
             self.cur.execute("""
-                INSERT INTO Categorie VALUES(%s,%s)""",
+                INSERT INTO categorie VALUES(%s,%s)""",
                 (item["category_id"], item["category"]))
             self.conn.commit()
 
 
         ## Insertion et mise à jour de la table SubCategorie
         self.cur.execute("""
-            SELECT * FROM SubCategorie WHERE idSubCategorie = %s
+            SELECT * FROM subcategorie WHERE idSubCategorie = %s
         """, (item["subcategory_id"],))
         res_subcategory = self.cur.fetchone()
 
@@ -95,13 +95,13 @@ class CrapyAuchanPipeline:
         #     spider.logger.warn("Category already in database: %s" % item['category_id'])
         if not res_subcategory:
             self.cur.execute("""
-                INSERT INTO SubCategorie VALUES(%s,%s,%s)""",
+                INSERT INTO subcategorie VALUES(%s,%s,%s)""",
                 (item["subcategory_id"], item["category_id"], item["subcategory"]))
             self.conn.commit()
 
         ## Insertion et mise à jour de la table Produit
         self.cur.execute("""
-                SELECT * FROM Produit WHERE idProduit = %s
+                SELECT * FROM produit WHERE idProduit = %s
             """, (item["product_id"],))
         res_product = self.cur.fetchone()
 
@@ -109,14 +109,14 @@ class CrapyAuchanPipeline:
         #     spider.logger.warn("Category already in database: %s" % item['category_id'])
         if not res_product:
             self.cur.execute("""
-                    INSERT INTO Produit VALUES(%s,%s,%s,%s,%s)""",
+                    INSERT INTO produit VALUES(%s,%s,%s,%s,%s)""",
                              (item["product_id"], item["subcategory_id"], item["category_id"], item["title"], item["image_url"]))
             self.conn.commit()
 
 
         ## Insertion et mise à jour de la table Suivi
         self.cur.execute("""
-                SELECT * FROM Suivi WHERE idProduit = %s and dateCollecte = %s
+                SELECT * FROM suivi WHERE idProduit = %s and dateCollecte = %s
             """, (item["product_id"],item["scraping_date"]))
         res_suivi = self.cur.fetchone()
 
@@ -124,7 +124,7 @@ class CrapyAuchanPipeline:
         #     spider.logger.warn("Category already in database: %s" % item['category_id'])
         if not res_suivi:
             self.cur.execute("""
-                    INSERT INTO Suivi VALUES(%s,%s,%s,%s,%s)""",
+                    INSERT INTO suivi VALUES(%s,%s,%s,%s,%s)""",
                     (item["product_id"], item["scraping_date"], item["price"], item["old_price"], item["is_out_of_stock"]))
             self.conn.commit()
 
