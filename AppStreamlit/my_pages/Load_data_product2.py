@@ -5,17 +5,13 @@ import pandas as pd
 
  # Le mot de passe se trouve dans le fichier .txt
         #
-contenu=""
-with open("secret.txt", "r") as file:
-    contenu = file.read()
-
 
 def load_data_product(nProduct: str):
     # Connexion à la base de données
     conn = pymysql.connect(
         host="db-auchan.c5esoc4g6qck.eu-west-3.rds.amazonaws.com",
         user="admin",
-        password=contenu,
+        password="MNdione2024",
         database="bdccAuchan"
     )
 
