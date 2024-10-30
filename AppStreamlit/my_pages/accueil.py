@@ -26,11 +26,11 @@ def display():
 
 
 #-------------------------------------------- chargement du style css pour les graphiques
-    with open('css/style.css')as f:
+    with open('my_pages/css/style.css')as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 #-------------------------------------------- Chargement du css pour les textes
-    with open('css/style.css')as f:
+    with open('my_pages/css/style.css')as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 #-------------------------------------------- Texte perso du siderbar

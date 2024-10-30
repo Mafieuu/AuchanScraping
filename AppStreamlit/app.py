@@ -14,10 +14,10 @@ st.set_page_config(
 
 # Chargement du css personnalise (modifications des classe et id par defaut de streamlit)
 
-with open("css/custom_style.css") as f:
+with open("my_pages/css/custom_style.css") as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-with open('css/style.css')as f:
+with open('my_pages/css/style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 
