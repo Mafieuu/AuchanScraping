@@ -16,10 +16,11 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
 /* Variables globales */
 :root {
     --auchan-red: #e63946;
-    --auchan-red-dark: #c32d2f;
+    --auchan-red-dark: #e63946;
     --auchan-red-light: #fde8eb;
     --background-light: #f8f9fa;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
@@ -27,34 +28,33 @@ st.markdown("""
     --border-radius: 8px;
 }
 
-/* Zone principale */
+
+
 .main {
     padding: 1.5rem;
 }
 
-/* Barre latérale */
-[data-testid="stSidebar"] .sidebar-content {
+/* Sidebar */
+.sidebar .sidebar-content {
     background-color: white;
     padding: 1rem;
-    color: white;
-}
-.stSidebar {
-    background-color: #e5f9e0;
 }
 
-/* Logo dans la barre latérale */
 .sidebar-logo {
     padding: 1rem;
     margin-bottom: 2rem;
 }
+
 .sidebar-logo img {
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
     transition: transform 0.3s ease;
 }
+
 .sidebar-logo img:hover {
     transform: scale(1.02);
 }
+
 .sidebar-logo .caption {
     text-align: center;
     margin-top: 0.5rem;
@@ -62,21 +62,41 @@ st.markdown("""
     font-weight: 500;
 }
 
-/* En-tête de la page */
+/* Header */
 .dashboard-header {
-    background-color: var(--auchan-red);
+    background-color:#E4080A;
     color: white;
     padding: 1.5rem;
     border-radius: var(--border-radius);
     margin-bottom: 2rem;
     box-shadow: var(--shadow-md);
-    text-align: center;
 }
+
 .dashboard-header h1 {
-    font-size: 1.8rem;
+    text-align: center;
+    font-size: 3rem;
+    color: white;
     font-weight: 600;
-    text-transform: uppercase;
     margin: 0;
+    text-transform: uppercase;
+}
+
+.dashboard-header h2 {
+    text-align: center;
+    font-size: 2rem;
+    color: white;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.dashboard-header h3 {
+    text-align: center;
+    font-size: 1.5rem;
+    color: white;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
 }
 
 /* Menu de navigation */
@@ -87,23 +107,30 @@ st.markdown("""
     margin-bottom: 2rem;
     box-shadow: var(--shadow-sm);
 }
+
 .nav-link {
     color: var(--auchan-red) !important;
     transition: all 0.3s ease;
     border-radius: var(--border-radius);
     margin: 0.2rem;
 }
+
 .nav-link:hover {
     background-color: var(--auchan-red-light) !important;
     transform: translateY(-1px);
 }
+
 .nav-link.active {
-    background-color: var(--auchan-red);
+    background-color:#e63946;
     color: white !important;
     box-shadow: var(--shadow-sm);
 }
 
-/* Cartes personnalisées */
+.nav-link .icon {
+    margin-right: 0.5rem;
+}
+
+/* Cards */
 .custom-card {
     background: white;
     border-radius: var(--border-radius);
@@ -112,9 +139,17 @@ st.markdown("""
     margin-bottom: 1.5rem;
     transition: transform 0.3s ease;
 }
+
 .custom-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+}
+
+.card-title {
+    color: var(--auchan-red);
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
 }
 
 /* Boutons */
@@ -127,6 +162,7 @@ st.markdown("""
     font-weight: 500;
     transition: all 0.3s ease;
 }
+
 .stButton > button:hover {
     background-color: var(--auchan-red-dark);
     transform: translateY(-1px);
@@ -147,13 +183,47 @@ st.markdown("""
     box-shadow: var(--shadow-sm);
     border-radius: var(--border-radius);
 }
+
 .dataframe th {
     background-color: var(--auchan-red) !important;
     color: white !important;
 }
+
 .dataframe tr:hover {
     background-color: var(--auchan-red-light) !important;
 }
+
+/* Footer */
+.footer {
+    background-color: white;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+/* marche pas ! */
+.nav-item{
+    background-color:#e63946;
+
+
+}
+.stSidebar{
+    background-color:#F0D076;
+}
+
+            
+
 
 /* Conteneurs personnalisés */
 [data-testid="metric-container"] {
@@ -232,8 +302,8 @@ page = option_menu( # voir help du package streamlit_option_menu
     orientation="horizontal",
     styles={
         "container": {"padding": "0!important"},
-        "icon": {"font-size": "1rem"},
-        "nav-link": {"font-size": "0.9rem", "text-align": "center", "margin": "0px"},
+        "icon": {"font-size": "1.3rem"},
+        "nav-link": {"font-size": "1.2em", "text-align": "center", "margin": "0px"},
         "nav-link-selected": {"background-color": "#e63946"},
     }
 )
@@ -257,9 +327,14 @@ with col1:
         </div>
     """, unsafe_allow_html=True)
 with col2: 
-    st.image("https://blog.lengow.com/wp-content/uploads/2016/02/logo-auchan-2015-1050x276-700x184.png", width=1000)
+    st.image("https://blog.lengow.com/wp-content/uploads/2016/02/logo-auchan-2015-1050x276-700x184.png", width=800)
 with col3:
     st.markdown("""
+        <div class="dashboard-header animate-fade-in">
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("""
         <div class="dashboard-header animate-fade-in">
         </div>
     """, unsafe_allow_html=True)
@@ -301,12 +376,13 @@ else:
 st.markdown("""
     <div class="footer">
         <p>ENSAE 2024/2025- TP Big Data<br>
-            -Fama
+            Fama
             -Maty
             -Famara
             -Larry
             -Moussa
             </p>
+            <img src="https://ensai.fr/wp-content/uploads/2019/07/ENSAE-Dakar-logo.png" alt="Image du produit" style="width:50%; height:auto; border-radius: 8px;">
     </div>
 """, unsafe_allow_html=True)
 

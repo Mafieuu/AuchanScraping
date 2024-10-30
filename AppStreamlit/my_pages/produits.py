@@ -73,11 +73,7 @@ def display():
             <h2 style = "text-align: center;font-weight: bold;">Produits</h2>
         </div>
     """, unsafe_allow_html=True)
-    st.sidebar.markdown("""
-        <div class="dashboard-header animate-fade-in">
-            <h2 style = "text-align: center;font-weight: bold;">Produits</h2>
-        </div>
-    """, unsafe_allow_html=True)
+    
 
     filter_page = st.sidebar.radio(
         "Choisir un type de filtre",
@@ -93,15 +89,12 @@ def display():
 #-------------------------------------------- Filtre par categorie
     if filter_page == "Filtre par Catégorie":
 
-        category_options =  st.session_state["df"]["category"].unique().tolist() + ["Tous"]
+        category_options =  st.session_state["df"]["category"].unique().tolist()
         category_filter = st.sidebar.selectbox(
             "Sélectionnez une catégorie", options=category_options, index=0
         )
         
-        if category_filter == "Tous":
-            subcategory_options = st.session_state["df"]["subcategory"].unique().tolist() + ["Tous"]
-        else:
-            subcategory_options = st.session_state["df"][st.session_state["df"]["category"] == category_filter]["subcategory"].unique().tolist() + ["Tous"]
+        subcategory_options = st.session_state["df"][st.session_state["df"]["category"] == category_filter]["subcategory"].unique().tolist()
 
         subcategory_filter = st.sidebar.multiselect(
             "Sélectionnez une sous-catégorie",
@@ -109,14 +102,7 @@ def display():
         )
 
         
-        if category_filter == "Tous" and subcategory_filter == "Tous":
-            filtered_data = st.session_state["df"] 
-        elif category_filter == "Tous":
-            filtered_data = st.session_state["df"][st.session_state["df"]["subcategory"] == subcategory_filter]  
-        elif subcategory_filter == "Tous":
-            filtered_data = st.session_state["df"][st.session_state["df"]["category"] == category_filter]  
-        else:
-            filtered_data = st.session_state["df"][
+        filtered_data = st.session_state["df"][
                 (st.session_state["df"]["category"] == category_filter) & 
                 (st.session_state["df"]["subcategory"].isin(subcategory_filter))
             ] 

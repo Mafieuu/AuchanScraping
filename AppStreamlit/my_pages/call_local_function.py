@@ -23,29 +23,34 @@ def display_image(image_url):
 
 @st.cache_data
 def display_product_info(product):
-    """
-    argument: produit ligne du df
-    Affiche ces infos
-    """
-    product_name = product.get("title", "Nom non disponible")
-    product_price = product.get("price", "Prix non disponible")
-    product_image = product.get("image_url", "")
-    product_status = "En rupture de stock" if product.get("is_out_of_stock") else "En stock"
-    st.markdown(
-        """
-        <style>
-        .product-card {
-            border: 1px solid #d1d1d1;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            background-color: #f9f9f9;
-            text-align: center;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+        product_name = product.get("title", "Nom non disponible")
+        product_price = product.get("price", "Prix non disponible")
+        product_image = product.get("image_url", "")
+        product_status = "En rupture de stock" if product.get("is_out_of_stock") else "En stock"
+        st.markdown(
+            """
+            <style>
+            .product-card {
+                border: 1px solid #d1d1d1;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 16px;
+                background-color: #f9f9f9;
+                text-align: center;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown(f"""
+        <div class="product-card">
+            <img src="{product_image}" alt="Image du produit" style="width:50%; height:auto; border-radius: 8px;">
+            <h4>{product_name}</h4>
+            <p style = "font-weight: bold;font-size: 24px;">Prix : {product_price} CFA</p>
+            <p>Statut : {product_status}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 
 # Affiche une métrique personnalisée [les gris pour total produit,max,...]

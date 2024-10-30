@@ -59,7 +59,7 @@ def display():
 #-------------------------------------------- Texte perso du siderbar
     st.sidebar.markdown("""
         <div class="dashboard-header animate-fade-in">
-            <h1 style = "text-align: center;font-weight: bold;">Page d'accueil</h1>
+            <h2 style = "text-align: center;font-weight: bold;">Page d'accueil</h2>
         </div>
     """, unsafe_allow_html=True)
 
@@ -86,7 +86,7 @@ def display():
         display_custom_metric("En rupture de stock", out_of_stock_products, "#FE9900")
     with col5:
         st.info('En promotion',icon="💯")
-        display_custom_metric("En promotio", on_promotion, "#582698")
+        display_custom_metric("En promotion", on_promotion, "#582698")
 
 
     st.markdown("---")
