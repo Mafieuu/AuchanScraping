@@ -201,7 +201,7 @@ div[data-testid="stExpander"] div[role="button"] p {
 with st.sidebar:
     st.markdown('<div class="sidebar-logo">', unsafe_allow_html=True)
     st.image(
-        "https://github.com/Mafieuu/img_depot/blob/main/Auchan-Logo.png",
+        "https://logos-world.net/wp-content/uploads/2021/02/Auchan-Logo.png",
         caption="Dashboard Auchan",
         use_column_width=True
     )
@@ -257,7 +257,7 @@ with col1:
         </div>
     """, unsafe_allow_html=True)
 with col2: 
-    st.image("https://github.com/Mafieuu/img_depot/blob/main/Photo2.png", width=1000)
+    st.image("https://blog.lengow.com/wp-content/uploads/2016/02/logo-auchan-2015-1050x276-700x184.png", width=1000)
 with col3:
     st.markdown("""
         <div class="dashboard-header animate-fade-in">
