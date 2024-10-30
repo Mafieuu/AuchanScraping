@@ -15,7 +15,7 @@ def display_image(image_url):
         sinon retourne l'image <no image >
     """
     if not image_url or image_url == "NaN":
-        st.image("images/missing.jpeg", width=200) 
+        st.image("https://github.com/Mafieuu/img_depot/blob/main/missing.jpeg", width=200) 
     else:
         st.image(image_url, width=200)
 
