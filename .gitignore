@@ -12,6 +12,5 @@ ScrapyWorkspace/images/
 __pycache__/
 task/
 env/
-**/secret.txt
 
 
