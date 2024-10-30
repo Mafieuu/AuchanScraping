@@ -26,12 +26,33 @@ def display():
 
 
 #-------------------------------------------- chargement du style css pour les graphiques
-    with open('my_pages/css/style.css')as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
+    st.markdown("""
+    <style>
+    /* Conteneurs personnalisés */
+    [data-testid="metric-container"] {
+        box-shadow: 0 0 4px #686664;
+        padding: 10px;
+    }
 
-#-------------------------------------------- Chargement du css pour les textes
-    with open('my_pages/css/style.css')as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
+    .plot-container > div {
+        box-shadow: 0 0 2px #070505;
+        padding: 5px;
+        border-color: #000000;
+    }
+
+    /* Expander */
+    div[data-testid="stExpander"] div[role="button"] p {
+        font-size: 1.2rem;
+        color: rgb(0, 0, 0);
+        border-color: #000000;
+    }
+
+    /* Barre latérale */
+    .sidebar-content, [data-testid="stSidebar"] {
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 #-------------------------------------------- Texte perso du siderbar
     st.sidebar.markdown("""

@@ -14,12 +14,185 @@ st.set_page_config(
 
 # Chargement du css personnalise (modifications des classe et id par defaut de streamlit)
 
-with open("my_pages/css/custom_style.css") as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* Variables globales */
+:root {
+    --auchan-red: #e63946;
+    --auchan-red-dark: #c32d2f;
+    --auchan-red-light: #fde8eb;
+    --background-light: #f8f9fa;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --border-radius: 8px;
+}
 
-with open('my_pages/css/style.css')as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
+/* Zone principale */
+.main {
+    padding: 1.5rem;
+}
 
+/* Barre latérale */
+[data-testid="stSidebar"] .sidebar-content {
+    background-color: white;
+    padding: 1rem;
+    color: white;
+}
+.stSidebar {
+    background-color: #e5f9e0;
+}
+
+/* Logo dans la barre latérale */
+.sidebar-logo {
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+.sidebar-logo img {
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.3s ease;
+}
+.sidebar-logo img:hover {
+    transform: scale(1.02);
+}
+.sidebar-logo .caption {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: var(--auchan-red);
+    font-weight: 500;
+}
+
+/* En-tête de la page */
+.dashboard-header {
+    background-color: var(--auchan-red);
+    color: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+.dashboard-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Menu de navigation */
+#MainMenu {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+.nav-link {
+    color: var(--auchan-red) !important;
+    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
+    margin: 0.2rem;
+}
+.nav-link:hover {
+    background-color: var(--auchan-red-light) !important;
+    transform: translateY(-1px);
+}
+.nav-link.active {
+    background-color: var(--auchan-red);
+    color: white !important;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Cartes personnalisées */
+.custom-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+.custom-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Boutons */
+.stButton > button {
+    background-color: var(--auchan-red);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+.stButton > button:hover {
+    background-color: var(--auchan-red-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Widgets Streamlit */
+.stSelectbox, .stTextInput, .stDateInput {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Tables */
+.dataframe {
+    border: none !important;
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--border-radius);
+}
+.dataframe th {
+    background-color: var(--auchan-red) !important;
+    color: white !important;
+}
+.dataframe tr:hover {
+    background-color: var(--auchan-red-light) !important;
+}
+
+/* Conteneurs personnalisés */
+[data-testid="metric-container"] {
+    box-shadow: 0 0 4px #686664;
+    padding: 10px;
+}
+.plot-container > div {
+    box-shadow: 0 0 2px #070505;
+    padding: 5px;
+    border-color: #000000;
+}
+
+/* Expander */
+div[data-testid="stExpander"] div[role="button"] p {
+    font-size: 1.2rem;
+    color: rgb(0, 0, 0);
+    border-color: #000000;
+}
+
+/* Pied de page */
+.footer {
+    background-color: white;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 #-------------------------------------------- Le sliderbar commun
