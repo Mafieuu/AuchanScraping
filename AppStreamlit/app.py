@@ -61,7 +61,7 @@ page = option_menu( # voir help du package streamlit_option_menu
         "container": {"padding": "0!important"},
         "icon": {"font-size": "1rem"},
         "nav-link": {"font-size": "0.9rem", "text-align": "center", "margin": "0px"},
-        "nav-link-selected": {"background-color": "darkred"},
+        "nav-link-selected": {"background-color": "#e63946"},
     }
 )
 
@@ -99,14 +99,13 @@ all_dates=Load_data_date.load_data_time() # Listes des dates dispo dans la base 
 if "all_dates" not in st.session_state:
     st.session_state["all_dates"]=list(sorted(all_dates,reverse=True))
     # les dates ne changeront pas aucour d'une session
-if page != "Evolution":
-    
 
-    st.sidebar.selectbox(
-    label="Choisissez une date :",
-    options=st.session_state["all_dates"],
-    key="choix_date"
-    )
+
+st.sidebar.selectbox(
+label="Choisissez une date :",
+options=st.session_state["all_dates"],
+key="choix_date"
+)
 #--------------------------------------------action sur les pages
  
 if page == "Visualisations":
@@ -128,7 +127,13 @@ else:
 
 st.markdown("""
     <div class="footer">
-        <p>ENSAE 2024/2025- TP Big Data</p>
+        <p>ENSAE 2024/2025- TP Big Data<br>
+            -Fama
+            -Maty
+            -Famara
+            -Larry
+            -Moussa
+            </p>
     </div>
 """, unsafe_allow_html=True)
 

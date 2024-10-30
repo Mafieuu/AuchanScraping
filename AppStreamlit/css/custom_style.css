@@ -34,8 +34,8 @@ footer                    # Pied de page
 
 /* Variables globales */
 :root {
-    --auchan-red: #e40521;
-    --auchan-red-dark: #c70017;
+    --auchan-red: #e63946;
+    --auchan-red-dark: #e63946;
     --auchan-red-light: #fde8eb;
     --background-light: #f8f9fa;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
@@ -79,7 +79,7 @@ footer                    # Pied de page
 
 /* Header */
 .dashboard-header {
-    background-color:darkred;
+    background-color:#e63946;
     color: white;
     padding: 1.5rem;
     border-radius: var(--border-radius);
@@ -118,7 +118,7 @@ footer                    # Pied de page
 }
 
 .nav-link.active {
-    background-color: orange;
+    background-color:#e63946;
     color: white !important;
     box-shadow: var(--shadow-sm);
 }
@@ -211,7 +211,12 @@ footer                    # Pied de page
 }
 /* marche pas ! */
 .nav-item{
-    background-color: orangered;
+    background-color:#e63946;
+
+
+}
+.stSidebar{
+    background-color:#e5f9e0;
 
 
 }

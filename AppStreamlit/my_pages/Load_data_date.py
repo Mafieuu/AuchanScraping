@@ -2,6 +2,15 @@ import streamlit as st
 from datetime import date
 import pymysql
 import pandas as pd
+
+ #
+# Le mot de passe se trouve dans le fichier .txt
+#
+contenu=""
+with open("secret.txt", "r") as file:
+    contenu = file.read()
+
+
 @st.cache_data
 def load_data_time():
     try:
@@ -9,7 +18,7 @@ def load_data_time():
         conn = pymysql.connect(
             host="db-auchan.c5esoc4g6qck.eu-west-3.rds.amazonaws.com",
             user="admin",
-            password="MNdione2024",
+            password=contenu,
             database="bdccAuchan"
         )
 

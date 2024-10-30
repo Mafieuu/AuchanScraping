@@ -3,6 +3,14 @@ from typing import List
 from datetime import date
 import pymysql
 import pandas as pd
+
+#
+# Le mot de passe se trouve dans le fichier .txt
+#
+contenu=""
+with open("secret.txt", "r") as file:
+    contenu = file.read()
+
 @st.cache_data
 def load_data(date_select: str):
     try:
@@ -10,7 +18,7 @@ def load_data(date_select: str):
         conn = pymysql.connect(
             host="db-auchan.c5esoc4g6qck.eu-west-3.rds.amazonaws.com",
             user="admin",
-            password="MNdione2024",
+            password=contenu,
             database="bdccAuchan"
         )
 
