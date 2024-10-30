@@ -57,7 +57,7 @@ def display():
 #-------------------------------------------- Texte perso du siderbar
     st.sidebar.markdown("""
         <div class="dashboard-header animate-fade-in">
-            <h1 style = "text-align: center;font-weight: bold;">Page Evolution</h1>
+            <h2 style = "text-align: center;font-weight: bold;">Page Evolution</h2>
         </div>
     """, unsafe_allow_html=True)
 
