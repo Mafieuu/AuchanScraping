@@ -24,8 +24,8 @@ Le projet est organisé en deux parties :
 2. Créez un environnement virtuel et activez-le :
    ```bash
    python -m venv venv
-   source venv/bin/activate    # Sur MacOS/Linux
-   source venv\Scripts\activate       # Sur Windows
+   source venv\bin\activate    # Sur MacOS/Linux
+   source venv/Scripts/activate       # Sur Windows
    ```
 
 3. Installez les dépendances :
