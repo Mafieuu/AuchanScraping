@@ -72,7 +72,7 @@ Le scraping récupérera les données d'Auchan Sénégal et les enregistrera dan
 
 Ce projet a été réalisé en *deux semaines* par :
 - Ndeye Fama Diop
-- Maty Dione
+- Maty NDione
 - Famara Sadio
 - Larry Sandjo
 - Moussa Dieme
