@@ -24,6 +24,10 @@ Le fichier webSite_structure.md constitue le fruit d'une analyse minitieuse de l
 Un aperçu de l'interface de notre dashboard.
 
 ![Aperçu du tableau de bord AuchanScraping](./main2.jpg)
+## Guide d'Utilisation de l'Application
+
+Une vidéo YouTube, faisant office de guide utilisateur, est disponible à l'adresse suivante : 
+[Regarder la vidéo](https://www.youtube.com/watch?v=Gx50pIqXEhk)
 
 ## Installation et Configuration
 
@@ -63,9 +67,6 @@ scrapy crawl auchan
 ```
 Le scraping récupérera les données d'Auchan Sénégal et les enregistrera dans notre base de données AWS.
 
-## Guide d'Utilisation de l'Application
-
-Une vidéo YouTube sera mise à disposition dans les heures qui suivent pour guider les utilisateurs lambda dans la prise en main de l’application.
 
 ## Auteurs
 
